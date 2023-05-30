@@ -1,0 +1,293 @@
+name: "local_proxy"
+# port: 7890
+# socks-port: 7891
+mixed-port: 7890
+allow-lan: false
+# bind-address: "*"
+bind-address: "127.0.0.1"
+mode: rule
+log-level: info
+ipv6: false
+external-controller: 0.0.0.0:9090
+secret: ""
+# external-ui: yacd
+# interface-name: en0
+# routing-mark: 6666
+
+dns:
+  enable: false
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+proxies:
+  - name: "ss2"
+    type: ss
+    server: local.host
+    port: 443
+    cipher: chacha20-ietf
+    password: "password"
+    udp: true
+proxy-groups:
+  - name: "SCHOLAR"
+    type: select
+    proxies:
+      - DIRECT
+  - name: "DEV"
+    type: url-test
+    lazy: true
+    url: "https://github.com/manifest.json"
+    interval: 1800
+    proxies:
+      - DIRECT
+  - name: "VIDEO"
+    type: url-test
+    lazy: true
+    interval: 1800
+    url: "https://youtube.com/generate_204"
+    proxies:
+      - DIRECT
+  - name: "CDN"
+    type: url-test
+    lazy: true
+    interval: 3600
+    url: "https://www.gstatic.com/generate_204"
+    proxies:
+      - DIRECT
+  - name: "TELEGRAM"
+    type: url-test
+    lazy: true
+    interval: 3600
+    url: "https://telegram.org/generate_204"
+    proxies:
+      - DIRECT
+  - name: "SENSITIVE"
+    type: select
+    proxies:
+      - DIRECT
+  - name: "GOOGLESCHOLAR"
+    type: url-test
+    lazy: true
+    interval: 3600
+    url: "https://scholar.google.com/generate_204"
+    proxies:
+      - DIRECT
+  - name: "SELFHOSTED"
+    type: select
+    proxies:
+      - DIRECT
+  - name: "NORPROXY"
+    type: url-test
+    lazy: true
+    interval: 1800
+    url: "https://youtube.com/generate_204"
+    proxies:
+      - DIRECT
+  - name: "RELAY"
+    type: relay
+    proxies:
+      - NORPROXY
+      - SELFHOSTED
+  - name: "PROXY"
+    type: select
+    proxies:
+      - NORPROXY
+      - RELAY
+      - SELFHOSTED
+  - name: "CNPROXY"
+    type: select
+    proxies:
+      - DIRECT
+  - name: "ZLIB"
+    type: select
+    proxies:
+      - DIRECT
+
+rule-providers:
+  scholar:
+    behavior: "classical"
+    type: http
+    url: "https://cdn.jsdelivr.net/gh/nerdneilsfield/clash_rules_for_scholar@0.1/rules/scholar.yaml"
+    interval: 3600
+    path: ./scholar.yaml
+
+  shanghaitech:
+    behavior: "classical"
+    type: http
+    url: "https://cdn.jsdelivr.net/gh/nerdneilsfield/clash_rules_for_scholar@0.1/rules/shanghaitech.yaml"
+    interval: 3600
+    path: ./shanghaitech.yaml
+
+  office:
+    behavior: "classical"
+    type: http
+    url: "https://cdn.jsdelivr.net/gh/nerdneilsfield/clash_rules_for_scholar@0.1/rules/office.yaml"
+    interval: 3600
+    path: ./office.yaml
+
+  cdn:
+    behavior: "classical"
+    type: http
+    url: "https://cdn.jsdelivr.net/gh/nerdneilsfield/clash_rules_for_scholar@0.1/rules/cdn.yaml"
+    interval: 3600
+    path: ./cdn.yaml
+
+  dev:
+    behavior: "classical"
+    type: http
+    url: "https://cdn.jsdelivr.net/gh/nerdneilsfield/clash_rules_for_scholar@0.1/rules/dev.yaml"
+    interval: 3600
+    path: ./dev.yaml
+
+  video:
+    behavior: "classical"
+    type: http
+    url: "https://cdn.jsdelivr.net/gh/nerdneilsfield/clash_rules_for_scholar@0.1/rules/video.yaml"
+    interval: 3600
+    path: ./dev.yaml
+
+  reject:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt"
+    path: ./ruleset/reject.yaml
+    interval: 86400
+
+  icloud:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt"
+    path: ./ruleset/icloud.yaml
+    interval: 86400
+
+  apple:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt"
+    path: ./ruleset/apple.yaml
+    interval: 86400
+
+  # google:
+  #   type: http
+  #   behavior: domain
+  #   url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/google.txt"
+  #   path: ./ruleset/google.yaml
+  #   interval: 86400
+
+  proxy:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt"
+    path: ./ruleset/proxy.yaml
+    interval: 86400
+
+  direct:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt"
+    path: ./ruleset/direct.yaml
+    interval: 86400
+
+  private:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt"
+    path: ./ruleset/private.yaml
+    interval: 86400
+
+  gfw:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt"
+    path: ./ruleset/gfw.yaml
+    interval: 86400
+
+  greatfire:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/greatfire.txt"
+    path: ./ruleset/greatfire.yaml
+    interval: 86400
+
+  tld-not-cn:
+    type: http
+    behavior: domain
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/tld-not-cn.txt"
+    path: ./ruleset/tld-not-cn.yaml
+    interval: 86400
+
+  telegramcidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt"
+    path: ./ruleset/telegramcidr.yaml
+    interval: 86400
+
+  cncidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt"
+    path: ./ruleset/cncidr.yaml
+    interval: 86400
+
+  lancidr:
+    type: http
+    behavior: ipcidr
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt"
+    path: ./ruleset/lancidr.yaml
+    interval: 86400
+
+  applications:
+    type: http
+    behavior: classical
+    url: "https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt"
+    path: ./ruleset/applications.yaml
+    interval: 86400
+
+rules:
+  - DOMAIN-SUFFIX, z-lib.org, ZLIB
+  - DOMAIN-SUFFIX, z-lib.net, ZLIB
+  - DOMAIN-SUFFIX, booksc.org, ZLIB
+  - DOMAIN-SUFFIX, booksc.net, ZLIB
+  - DOMAIN-SUFFIX, book4you.org, ZLIB
+  - DOMAIN-SUFFIX, book4you.net, ZLIB
+  - DOMAIN-SUFFIX, libgen.io, ZLIB
+  - DOMAIN-SUFFIX, libgen.info, ZLIB
+  - DOMAIN-SUFFIX, libgen.se, ZLIB
+  - DOMAIN-SUFFIX, 1lib.us, ZLIB
+  - DOMAIN-SUFFIX, 1lib.org, ZLIB
+  - DOMAIN-SUFFIX, 1lib.net, ZLIB
+  - DOMAIN-SUFFIX, 1lib.com, ZLIB
+  - DOMAIN-SUFFIX, 1lib.io, ZLIB
+  - DOMAIN-SUFFIX, 1lib.info, ZLIB
+  - DOMAIN-SUFFIX, 1lib.se, ZLIB
+  - DOMAIN-SUFFIX, 1lib.co, ZLIB
+  - DOMAIN-SUFFIX, 1lib.me, ZLIB
+  - DOMAIN-SUFFIX, fr1lib.org, ZLIB
+  - DOMAIN, u1lib.org, ZLIB
+  - DOMAIN-SUFFIX, u1lib.org, ZLIB
+  - DOMAIN-SUFFIX, 1lib.education, ZLIB
+  - DOMAIN-SUFFIX, 3lib.net, ZLIB
+  - DOMAIN-SUFFIX, zlibcdn.com, ZLIB
+  - DOMAIN-SUFFIX, 1lib.domains, ZLIB
+  - DOMAIN, 1lib.tw, ZLIB
+  - DOMAIN-SUFFIX, 1lib.tw, ZLIB
+  - RULE-SET, scholar, SCHOLAR
+  - RULE-SET, shanghaitech, SCHOLAR
+  - RULE-SET, office, SCHOLAR
+  - RULE-SET, private, DIRECT
+  - RULE-SET, lancidr, DIRECT
+  - RULE-SET, dev, DEV
+  - RULE-SET, telegramcidr, TELEGRAM
+  - RULE-SET, applications,  CNPROXY
+  - RULE-SET, cncidr,  CNPROXY
+  - RULE-SET, direct, CNPROXY
+  - RULE-SET, apple, CNPROXY
+  - RULE-SET, icloud, CNPROXY
+  - RULE-SET, video, VIDEO
+  - RULE-SET, cdn, CDN
+  - RULE-SET, greatfire, PROXY
+  - RULE-SET, gfw, PROXY
+  - RULE-SET, tld-not-cn, PROXY
+  - MATCH,PROXY

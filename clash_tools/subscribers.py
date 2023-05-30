@@ -1,10 +1,15 @@
 import base64
 import logging
+import re
 
 import yaml
 import pyaes
+import requests as rq
+from urllib.parse import unquote, urlparse
+
 
 from clash_tools import SsTranslator, VmessTranslator
+from clash_tools.utils import match_pattern
 
 class Subscriber(object):
     def __init__(self, url=None, name=None, rule_tags=None):
@@ -19,6 +24,7 @@ class Subscriber(object):
             self.rules = list(rule_tags.keys())
         else:
             self.rules = []
+        self.exclude_rules = []
 
     def __str__(self):
         res = f"Subscriber: {self.name} {self.url}"
@@ -52,6 +58,7 @@ class Subscriber(object):
         else:
             self.key = ""
         self.rules = list(self.rule_tags.keys())
+        self.exclude_rules = sub_object['excludes']
 
     def get_tags(self, rule_name):
         if rule_name in self.rules:
@@ -69,9 +76,9 @@ class Subscriber(object):
             try:
                 res = rq.get(self.url, timeout=10)
             except Exception as e:
-                logging.error(f"error to retry rule: {self.name}")
-                logging.debug(f"url: {self.url}")
-                logging.debug(f"error: {e}")
+                logging.error(f"error to get rule: {self.name}")
+                logging.error(f"url: {self.url}")
+                logging.error(f"error: {e}")
                 return
 
             try:  # parse the config
@@ -81,11 +88,18 @@ class Subscriber(object):
                     load_config = yaml.safe_load(res.text)
                     # self.proxies = load_config['proxies']
                     proxies = load_config['proxies']
+                    logging.info(f"found {len(proxies)} proxies for provider: {self.name}")
 
-                    for proxies in proxies:
-                        proxies['name'] = unquote(proxies['name'])
-                        self.proxies.append(proxies)
-                        self.proxies_name.append(unquote(proxies['name']))
+                    for proxy in proxies:
+                        for exclude_rule in self.exclude_rules:
+                            if match_pattern(exclude_rule, unquote(proxy['name'])):
+                                logging.info(f"exclude rule: {unquote(proxy['name'])}")
+                                continue
+                            else:
+                                proxy['name'] = unquote(proxy['name'])
+                                self.proxies.append(proxy)
+                                self.proxies_name.append(unquote(proxy['name']))
+
                 elif self.type == "ss":
                     text = res.text
                     missing_padding = 4 - (len(text) % 4)

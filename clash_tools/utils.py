@@ -1,4 +1,5 @@
 import logging
+import re
 
 import pyaes
 
@@ -14,3 +15,10 @@ def gen_aes(input_key):
     key_ = key_.encode('utf-8')
     aes_ = pyaes.AESModeOfOperationCTR(key_)
     return aes_
+
+def match_pattern(pattern, text):
+    if pattern in text:
+        return True
+    if re.match(pattern, text):
+        return True
+    return False

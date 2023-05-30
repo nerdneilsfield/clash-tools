@@ -1,3 +1,4 @@
 coloredlogs
 pyaes
 pyyaml
+requests

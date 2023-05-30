@@ -1,0 +1,11 @@
+subscribers:
+  - name: "TEST"
+    url: "you subscription url"
+    type: "clash"
+    rule_tags:
+      local_proxy:
+        - VIDEO
+        - CDN
+        - ZLIB
+    excludes:
+      - "游戏专线"
