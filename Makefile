@@ -1,6 +1,6 @@
 .PHONY: build
 build:
-	docker-compose build -t clash_tools .
+	docker build -t clash_tools .
 
 .PHONY: up
 up:
