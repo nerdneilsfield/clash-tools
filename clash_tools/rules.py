@@ -5,15 +5,23 @@ import yaml
 
 
 class Rule(object):
-
-    def __init__(self, rule_path):
+    def __init__(self, rule_path, subscribers=None):
         self.name = None
         self.rule_content = None
         self.tags = []
         self.rule_path = rule_path
+        self.subscribers = subscribers
 
         self.load_config()
         self.update_tags()
+
+        if self.subscribers:
+            self.subscribers.update_proxies()
+            for subscriber in self.subscribers.subscribers.values():
+                # print(subscriber.proxies_name)
+                self.add_to_proxies(subscriber.proxies)
+                for tag in subscriber.get_tags(self.name):
+                        self.add_to_proxies_groups(tag, subscriber.proxies_name)
 
     def load_config(self):
         try:
@@ -27,29 +35,30 @@ class Rule(object):
             return True
 
     def update_tags(self):
-        self.name = self.rule_content['name']
-        del self.rule_content['name']
-        for proxy in self.rule_content['proxy-groups']:
-            self.tags.append(proxy['name'])
+        self.name = self.rule_content["name"]
+        del self.rule_content["name"]
+        for proxy in self.rule_content["proxy-groups"]:
+            self.tags.append(proxy["name"])
 
     def add_to_proxies_groups(self, tag_name, proxies_name):
-        """ tag_name: the tag of proxies group"""
+        """tag_name: the tag of proxies group"""
         """ proxies_name: the list of name of proxies"""
         if tag_name not in self.tags:
             logging.warning(f"tag {tag_name} not in rule")
             return False
         else:
-            for i in range(len(self.rule_content['proxy-groups'])):
-                if self.rule_content['proxy-groups'][i]['name'] == tag_name:
+            for i in range(len(self.rule_content["proxy-groups"])):
+                if self.rule_content["proxy-groups"][i]["name"] == tag_name:
                     for proxy_name in proxies_name:
-                        self.rule_content['proxy-groups'][i]['proxies'].append(
-                            proxy_name)
+                        self.rule_content["proxy-groups"][i]["proxies"].append(
+                            proxy_name
+                        )
             return True
 
     def add_to_proxies(self, proxies):
-        """ add proxies to rule's proxies"""
+        """add proxies to rule's proxies"""
         for proxy in proxies:
-            self.rule_content['proxies'].append(proxy)
+            self.rule_content["proxies"].append(proxy)
 
     def generate_config(self):
         logging.debug(f"generating config for rule: {self.name}")
@@ -77,13 +86,21 @@ class Rule(object):
 class Rules(object):
     def __init__(self, output_path=None, subscribers=None, rules=None):
         logging.debug(
-            f"inviting rules with output_path: {output_path} and subscribers: {subscribers} and rules: {rules}")
+            f"inviting rules with output_path: {output_path} and subscribers: {subscribers} and rules: {rules}"
+        )
         self.rules = rules if rules is not None else []
         self.subscribers = subscribers if subscribers is not None else []
-        self.output_path = os.path.abspath(
-            output_path) if output_path is not None else os.path.abspath(__file__)
+        self.output_path = (
+            os.path.abspath(output_path)
+            if output_path is not None
+            else os.path.abspath(__file__)
+        )
         logging.debug(
-            f"inited rules with output_path: {self.output_path} and subscribers: {self.subscribers} and rules {self.rules}")
+            f"inited rules with output_path: {self.output_path} and subscribers: {self.subscribers} and rules {self.rules}"
+        )
+
+    def get_rule_names(self):
+        return [rule.name for rule in self.rules]
 
     def append_with_path(self, rule_path):
         logging.debug(f"append rule with path: {rule_path}")
@@ -96,7 +113,8 @@ class Rules(object):
 
     def set_subscribers(self, subscribers):
         logging.debug(
-            f"set subscribers with {len(subscribers.subscribers.keys())} for rules")
+            f"set subscribers with {len(subscribers.subscribers.keys())} for rules"
+        )
         self.subscribers = subscribers
 
     def update_proxies(self):
@@ -112,13 +130,13 @@ class Rules(object):
                 self.rules[rule_id].add_to_proxies(subscriber.proxies)
                 for tag in sub_tags:
                     self.rules[rule_id].add_to_proxies_groups(
-                        tag, subscriber.proxies_name)
+                        tag, subscriber.proxies_name
+                    )
 
         logging.info(f"generate config for {rule_name}.......")
         config_output = self.rules[rule_id].generate_config()
         if len(config_output) > 0:
-            output_path = os.path.join(
-                self.output_path, rule_name + "_gen.yaml")
+            output_path = os.path.join(self.output_path, rule_name + "_gen.yaml")
             logging.info(f"saving generate config to {output_path}")
             with open(output_path, "w") as output_file:
                 output_file.write(config_output)

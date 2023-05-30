@@ -2,3 +2,5 @@ coloredlogs
 pyaes
 pyyaml
 requests
+fastapi
+uvicorn
