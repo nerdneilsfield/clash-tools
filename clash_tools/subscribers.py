@@ -11,6 +11,7 @@ from urllib.parse import unquote, urlparse
 from clash_tools import SsTranslator, VmessTranslator
 from clash_tools.utils import match_pattern
 
+
 class Subscriber(object):
     def __init__(self, url=None, name=None, rule_tags=None):
         self.proxies = []
@@ -46,19 +47,19 @@ class Subscriber(object):
         """          - tag2  """
         """          - tag3  """
         logging.debug(f"init subscriber with object {sub_object}")
-        self.url = sub_object['url']
-        self.name = sub_object['name']
-        self.rule_tags = sub_object['rule_tags']
+        self.url = sub_object["url"]
+        self.name = sub_object["name"]
+        self.rule_tags = sub_object["rule_tags"]
         if "type" in sub_object.keys():
-            self.type = sub_object['type']
+            self.type = sub_object["type"]
         else:
             self.type = "clash"
         if "key" in sub_object.keys():
-            self.key = sub_object['key']
+            self.key = sub_object["key"]
         else:
             self.key = ""
         self.rules = list(self.rule_tags.keys())
-        self.exclude_rules = sub_object['excludes']
+        self.exclude_rules = sub_object["excludes"]
 
     def get_tags(self, rule_name):
         if rule_name in self.rules:
@@ -87,37 +88,49 @@ class Subscriber(object):
                 if self.type == "clash":
                     load_config = yaml.safe_load(res.text)
                     # self.proxies = load_config['proxies']
-                    proxies = load_config['proxies']
-                    logging.info(f"found {len(proxies)} proxies for provider: {self.name}")
+                    proxies = load_config["proxies"]
+                    logging.info(
+                        f"found {len(proxies)} proxies for provider: {self.name}"
+                    )
 
                     for proxy in proxies:
                         for exclude_rule in self.exclude_rules:
-                            if match_pattern(exclude_rule, unquote(proxy['name'])):
+                            if match_pattern(exclude_rule, unquote(proxy["name"])):
                                 logging.info(f"exclude rule: {unquote(proxy['name'])}")
+                                print(f"exclude rule: {unquote(proxy['name'])}")
                                 continue
                             else:
-                                proxy['name'] = unquote(proxy['name'])
+                                proxy["name"] = unquote(proxy["name"])
                                 self.proxies.append(proxy)
-                                self.proxies_name.append(unquote(proxy['name']))
+                                self.proxies_name.append(unquote(proxy["name"]))
 
                 elif self.type == "ss":
                     text = res.text
                     missing_padding = 4 - (len(text) % 4)
-                    text += missing_padding * '='
+                    text += missing_padding * "="
 
                     text_decoded = base64.b64decode(text).decode("utf-8")
                     proxies_url = text_decoded.split("\n")
                     for url in proxies_url:
                         if SsTranslator.match(url):
                             proxy_item = SsTranslator.parse(url).to_dict()
-                            self.proxies.append(proxy_item)
-                            self.proxies_name.append(proxy_item['name'])
+                            for exclude_rule in self.exclude_rules:
+                                if match_pattern(exclude_rule, proxy_item["name"]):
+                                    logging.info(f"exclude rule: {proxy_item['name']}")
+                                    continue
+                                else:
+                                    self.proxies.append(proxy_item)
+                                    self.proxies_name.append(proxy_item["name"])
                         elif VmessTranslator.match(url):
                             proxy_item = VmessTranslator.parse(url).to_dict()
-                            self.proxies.append(proxy_item)
-                            self.proxies_name.append(proxy_item['name'])
+                            for exclude_rule in self.exclude_rules:
+                                if match_pattern(exclude_rule, proxy_item["name"]):
+                                    logging.info(f"exclude rule: {proxy_item['name']}")
+                                    continue
+                                else:
+                                    self.proxies.append(proxy_item)
+                                    self.proxies_name.append(proxy_item["name"])
                 elif self.type == "clash_aes":
-
                     if len(self.key) > 32:
                         self.key = self.key[:32]
                     elif len(self.key) < 32:
@@ -127,16 +140,23 @@ class Subscriber(object):
 
                     content = aes.decrypt(res.content).decode("utf-8")
                     missing_padding = 4 - (len(content) % 4)
-                    content += missing_padding * '='
+                    content += missing_padding * "="
                     content_yaml = base64.b64decode(content)
                     load_config = yaml.safe_load(content_yaml)
                     # self.proxies = load_config['proxies']
-                    proxies = load_config['proxies']
+                    proxies = load_config["proxies"]
 
                     for proxies in proxies:
-                        proxies['name'] = unquote(proxies['name'])
-                        self.proxies.append(proxies)
-                        self.proxies_name.append(unquote(proxies['name']))
+                        for exclude_rule in self.exclude_rules:
+                            if match_pattern(exclude_rule, unquote(proxies["name"])):
+                                logging.info(
+                                    f"exclude rule: {unquote(proxies['name'])}"
+                                )
+                                continue
+                            else:
+                                proxies["name"] = unquote(proxies["name"])
+                                self.proxies.append(proxies)
+                                self.proxies_name.append(unquote(proxies["name"]))
 
             except Exception as e:
                 self.proxies = []
@@ -178,11 +198,12 @@ class Subscribers(object):
             return
         else:
             try:
-                with open(self.subscribers_file, 'r') as f:
+                with open(self.subscribers_file, "r") as f:
                     logging.info(
-                        f"loading subscribers from file: {self.subscribers_file}")
+                        f"loading subscribers from file: {self.subscribers_file}"
+                    )
                     load_config = yaml.safe_load(f)
-                    for sub_object in load_config['subscribers']:
+                    for sub_object in load_config["subscribers"]:
                         sub = Subscriber()
                         sub.init_with_object(sub_object)
                         self.subscribers[sub.name] = sub

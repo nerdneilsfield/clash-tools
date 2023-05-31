@@ -3,6 +3,8 @@ import os
 
 import yaml
 
+from clash_tools.utils import match_pattern_list
+
 
 class Rule(object):
     def __init__(self, rule_path, subscribers=None):
@@ -11,6 +13,7 @@ class Rule(object):
         self.tags = []
         self.rule_path = rule_path
         self.subscribers = subscribers
+        self.proxies_name = []
 
         self.load_config()
         self.update_tags()
@@ -18,10 +21,12 @@ class Rule(object):
         if self.subscribers:
             self.subscribers.update_proxies()
             for subscriber in self.subscribers.subscribers.values():
-                # print(subscriber.proxies_name)
-                self.add_to_proxies(subscriber.proxies)
+                print(subscriber.proxies_name)
+                self.add_to_proxies(subscriber.proxies, subscriber.exclude_rules)
                 for tag in subscriber.get_tags(self.name):
-                        self.add_to_proxies_groups(tag, subscriber.proxies_name)
+                    self.add_to_proxies_groups(
+                        tag, subscriber.proxies_name, subscriber.exclude_rules
+                    )
 
     def load_config(self):
         try:
@@ -39,8 +44,9 @@ class Rule(object):
         del self.rule_content["name"]
         for proxy in self.rule_content["proxy-groups"]:
             self.tags.append(proxy["name"])
+        self.tags = list(set(self.tags))
 
-    def add_to_proxies_groups(self, tag_name, proxies_name):
+    def add_to_proxies_groups(self, tag_name, proxies_name, exclude_rules):
         """tag_name: the tag of proxies group"""
         """ proxies_name: the list of name of proxies"""
         if tag_name not in self.tags:
@@ -50,15 +56,32 @@ class Rule(object):
             for i in range(len(self.rule_content["proxy-groups"])):
                 if self.rule_content["proxy-groups"][i]["name"] == tag_name:
                     for proxy_name in proxies_name:
-                        self.rule_content["proxy-groups"][i]["proxies"].append(
-                            proxy_name
-                        )
+                        if self.rule_content["proxy-groups"][i]["proxies"] is not None:
+                            if proxy_name not in self.rule_content["proxy-groups"][i][
+                                "proxies"
+                            ] and not match_pattern_list(exclude_rules, proxy_name):
+                                self.rule_content["proxy-groups"][i]["proxies"].append(
+                                    proxy_name
+                                )
+                        else:
+                            self.rule_content["proxy-groups"][i]["proxies"] = []
+                            if not match_pattern_list(exclude_rules, proxy_name):
+                                self.rule_content["proxy-groups"][i]["proxies"].append(
+                                    proxy_name
+                                )
             return True
 
-    def add_to_proxies(self, proxies):
+    def add_to_proxies(self, proxies, exclude_rules):
         """add proxies to rule's proxies"""
         for proxy in proxies:
-            self.rule_content["proxies"].append(proxy)
+            if proxy["name"] not in self.proxies_name and not match_pattern_list(
+                exclude_rules, proxy["name"]
+            ):
+                self.proxies_name.append(proxy["name"])
+                self.rule_content["proxies"].append(proxy)
+            else:
+                logging.info(f"skip proxy: {proxy['name']}")
+                print(f"skip proxy: {proxy['name']}")
 
     def generate_config(self):
         logging.debug(f"generating config for rule: {self.name}")
@@ -127,10 +150,12 @@ class Rules(object):
             if len(sub_tags) > 0:
                 # tags.append(sub_tags)
                 # if the subscriber have tag for the rule, add it
-                self.rules[rule_id].add_to_proxies(subscriber.proxies)
+                self.rules[rule_id].add_to_proxies(
+                    subscriber.proxies, subscriber.exclude_rules
+                )
                 for tag in sub_tags:
                     self.rules[rule_id].add_to_proxies_groups(
-                        tag, subscriber.proxies_name
+                        tag, subscriber.proxies_name, subscriber.exclude_rules
                     )
 
         logging.info(f"generate config for {rule_name}.......")

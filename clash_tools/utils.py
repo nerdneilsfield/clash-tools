@@ -22,3 +22,9 @@ def match_pattern(pattern, text):
     if re.match(pattern, text):
         return True
     return False
+
+def match_pattern_list(pattern_list, text):
+    for pattern in pattern_list:
+        if match_pattern(pattern, text):
+            return True
+    return False
